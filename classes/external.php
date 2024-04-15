@@ -27,6 +27,7 @@ require_once("$CFG->libdir/externallib.php");
 
 use coding_exception;
 use context_system;
+use core_user\fields;
 use dml_exception;
 use external_api;
 use external_description;
@@ -58,7 +59,7 @@ class external extends external_api {
                 0
         );
         $limitnum = new external_value(
-                PARAM_RAW,
+            PARAM_INT,
                 'Number of records to fetch',
                 VALUE_DEFAULT,
                 100
@@ -100,7 +101,11 @@ class external extends external_api {
         if (!empty($CFG->showuseridentity) && has_capability('moodle/site:viewuseridentity', $context)) {
             $extrasearchfields = explode(',', $CFG->showuseridentity);
         }
-        $fields = \user_picture::fields('u', $extrasearchfields);
+        $userfields = fields::for_userpic();
+        if ($extrasearchfields) {
+            $userfields->including(...$extrasearchfields);
+        }
+        $fields = trim($userfields->get_sql('u')->selects, ',');
 
         list($wheresql, $whereparams) = users_search_sql($query, 'u', true, $extrasearchfields);
         list($sortsql, $sortparams) = users_order_by_sql('u', $query, $context);
